@@ -1,0 +1,34 @@
+{
+  "name": "FAR Scheduler",
+  "description": "A multi-week scheduling widget with selectable time slots.",
+  "version": "1.0.0",
+  "properties": {
+    "startDate": {
+      "title": "Start Date",
+      "type": "string",
+      "format": "date",
+      "description": "The start date of the scheduler (e.g., 2025-10-05)."
+    },
+    "endDate": {
+      "title": "End Date",
+      "type": "string",
+      "format": "date",
+      "description": "The end date of the scheduler (e.g., 2025-10-26)."
+    },
+    "startTime": {
+      "title": "Start Time",
+      "type": "string",
+      "description": "The starting time in 24-hour format (e.g., 14:30)."
+    },
+    "endTime": {
+      "title": "End Time",
+      "type": "string",
+      "description": "The ending time in 24-hour format (e.g., 18:00)."
+    },
+    "greyOut": {
+      "title": "Grey Out Slots",
+      "type": "string",
+      "description": "Comma-separated list of slots to grey out (format: YYYY-MM-DD HH:MM)."
+    }
+  }
+}

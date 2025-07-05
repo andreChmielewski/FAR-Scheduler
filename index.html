@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Custom MultiSelect Grid</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 10px; }
+        table { border-collapse: collapse; }
+        th, td { 
+            min-width: 80px;
+            height: 50px; 
+            text-align: center; 
+            border: 1px solid #ccc; 
+            cursor: pointer; 
+            white-space: nowrap;
+            padding: 5px;
+        }
+        td.selected { background-color: #4CAF50; color: white; }
+        td.deselected { background-color: #f44336; color: white; }
+        td.greyed {
+            background-color: #ddd !important;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div id="weekNav"></div>
+    <table id="grid"></table>
+
+    <!-- <script src="https://cdn.jotfor.ms/widgets/loader.js"></script> -->
+<script>
+    const JotFormCustomWidget = {
+        setValue: (val) => {
+            localStorage.setItem("farSchedulerData", val);
+            console.log("Saved:", val);
+        },
+        getValue: (cb) => {
+            const val = localStorage.getItem("farSchedulerData");
+            console.log("Loaded:", val);
+            cb(val);
+        },
+        init: (o) => o.ready && o.ready(),
+        ready: () => console.log("Widget ready"),
+        getSettings: (cb) => { cb({}); } // placeholder for settings callback
+    };
+</script>
+    <script>
+        let startDate = new Date("2025-10-05"); 
+        let endDate = new Date("2025-10-26");
+        let startTime = "14:30"; 
+        let endTime = "18:00";
+        let greyOut = [];
+
+        const selected = {};  // { "2025-10-05": { "14:30": true, ... }, ... }
+        let rows = [];
+        let allWeeks = [];
+        let currentWeekIndex = 0;
+
+        function setupScheduler() {
+            // Align startDate to nearest previous Sunday
+            while (startDate.getDay() !== 0) {
+                startDate.setDate(startDate.getDate() - 1);
+            }
+            // Align endDate to nearest next Saturday
+            while (endDate.getDay() !== 6) {
+                endDate.setDate(endDate.getDate() + 1);
+            }
+
+            // Generate rows from startTime to endTime in 30 min intervals
+            rows = [];
+            function timeToMinutes(t) {
+                const [h,m] = t.split(":").map(Number);
+                return h*60 + m;
+            }
+            function minutesToTime(m) {
+                let h = Math.floor(m/60);
+                let mm = m % 60;
+                const ampm = h >= 12 ? "PM" : "AM";
+                h = h % 12;
+                if (h === 0) h = 12;
+                return h + ":" + (mm < 10 ? "0" + mm : mm) + " " + ampm;
+            }
+            let startM = timeToMinutes(startTime);
+            let endM = timeToMinutes(endTime);
+            for(let t = startM; t < endM; t += 30) {
+                const startStr = minutesToTime(t);
+                const endStr = minutesToTime(t + 30);
+                rows.push(startStr + " - " + endStr);
+            }
+
+            // Compute all weeks in the range
+            allWeeks = [];
+            let current = new Date(startDate);
+            while (current <= endDate) {
+                const week = [];
+                for (let i = 0; i < 7; i++) {
+                    const day = new Date(current);
+                    day.setDate(current.getDate() + i);
+                    if (day > endDate) break;
+                    week.push(day);
+                }
+                allWeeks.push(week);
+                current.setDate(current.getDate() + 7);
+            }
+            currentWeekIndex = 0;
+
+            updateGridWeek();
+        }
+
+        function buildGrid(weekDays) {
+            const table = document.getElementById("grid");
+            table.innerHTML = "";
+
+            // Header row
+            const headerRow = table.insertRow();
+            headerRow.insertCell();
+            weekDays.forEach(day => {
+                const th = headerRow.insertCell();
+                th.textContent = day.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+            });
+
+            // Rows
+            rows.forEach(row => {
+                const tr = table.insertRow();
+                const rowLabel = tr.insertCell();
+                rowLabel.textContent = row;
+
+                // Extract start time from row label (e.g. "2:30 PM - 3:00 PM" => "14:30")
+                const startPart = row.split(" - ")[0];
+                // Convert to 24h format string like "14:30"
+                function parse12h(t) {
+                    let [time, ampm] = t.split(" ");
+                    let [h,m] = time.split(":").map(Number);
+                    if (ampm === "PM" && h !== 12) h += 12;
+                    if (ampm === "AM" && h === 12) h = 0;
+                    return (h < 10 ? "0" : "") + h + ":" + (m < 10 ? "0" : "") + m;
+                }
+                const rowStart = parse12h(startPart);
+
+                weekDays.forEach(day => {
+                    const dayKey = day.toISOString().split('T')[0];
+                    const td = tr.insertCell();
+                    td.dataset.row = row;
+                    td.dataset.col = dayKey;
+                    const greyKey = dayKey + " " + rowStart;
+                    if (greyOut.includes(greyKey)) {
+                        td.classList.add("greyed");
+                    }
+                    td.addEventListener('click', () => {
+                        if (!td.classList.contains("greyed")) toggleCell(td);
+                    });
+                    if (!selected[dayKey]) selected[dayKey] = {};
+                    if (selected[dayKey][row] === undefined) {
+                        selected[dayKey][row] = true; // default selected
+                    }
+                    td.classList.add(selected[dayKey][row] ? "selected" : "deselected");
+                });
+            });
+        }
+
+        function updateGridWeek() {
+            buildGrid(allWeeks[currentWeekIndex]);
+            document.getElementById("weekNav").innerHTML =
+                `<button onclick="prevWeek()">Previous</button>
+                 <span>Week ${currentWeekIndex+1} of ${allWeeks.length}</span>
+                 <button onclick="nextWeek()">Next</button>`;
+        }
+        // Make these functions global for button onclick
+        window.prevWeek = function() {
+            if (currentWeekIndex > 0) {
+                currentWeekIndex--;
+                updateGridWeek();
+            }
+        }
+        window.nextWeek = function() {
+            if (currentWeekIndex < allWeeks.length - 1) {
+                currentWeekIndex++;
+                updateGridWeek();
+            }
+        }
+
+        function toggleCell(cell) {
+            const row = cell.dataset.row;
+            const col = cell.dataset.col;
+            if (!selected[col]) selected[col] = {};
+            selected[col][row] = !selected[col][row];
+            if (selected[col][row]) {
+                cell.classList.add("selected");
+                cell.classList.remove("deselected");
+            } else {
+                cell.classList.remove("selected");
+                cell.classList.add("deselected");
+            }
+            JotFormCustomWidget.setValue(JSON.stringify(selected));
+        }
+
+        JotFormCustomWidget.init({
+            ready: function(){
+                JotFormCustomWidget.getSettings(function(settings){
+                    if (settings.startDate) startDate = new Date(settings.startDate);
+                    if (settings.endDate) endDate = new Date(settings.endDate);
+                    if (settings.startTime) startTime = settings.startTime;
+                    if (settings.endTime) endTime = settings.endTime;
+                    if (settings.greyOut) {
+                        greyOut = settings.greyOut.split(",").map(s => s.trim());
+                    }
+                    JotFormCustomWidget.getValue(function(value){
+                        if (value) {
+                            try {
+                                Object.assign(selected, JSON.parse(value));
+                            } catch {
+                                console.log("Failed to parse previous value.");
+                            }
+                        }
+                        setupScheduler();
+                        JotFormCustomWidget.ready();
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html>
