@@ -54,7 +54,7 @@
             // Automatically grey out days before startDate in first week
             const firstWeek = allWeeks[0];
             for (let i = 0; i < firstWeek.length; i++) {
-                if (firstWeek[i].toISOString().split('T')[0] < startDateString.toISOString().split('T')[0]) {
+                if (firstWeek[i].toISOString().split('T')[0] < startDateString.split('T')[0]) {
                     if (!greyOut.includes(firstWeek[i].toISOString().split('T')[0])) {
                         greyOut.push(firstWeek[i].toISOString().split('T')[0]);
                     }
@@ -63,7 +63,7 @@
             // Automatically grey out days after endDate in last week
             const lastWeek = allWeeks[allWeeks.length - 1];
             for (let i = 0; i < lastWeek.length; i++) {
-                if (lastWeek[i].toISOString().split('T')[0] > endDateString.toISOString().split('T')[0]) {
+                if (lastWeek[i].toISOString().split('T')[0] > endDateString.split('T')[0]) {
                     if (!greyOut.includes(lastWeek[i].toISOString().split('T')[0])) {
                         greyOut.push(lastWeek[i].toISOString().split('T')[0]);
                     }
