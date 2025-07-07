@@ -24,7 +24,7 @@
         const dayInitials = { "Sun": "Su", "Mon": "M", "Tue": "Tu", "Wed": "W", "Thu": "Th", "Fri": "F", "Sat": "Sa" };
         const timezoneOffsetHours = -new Date().getTimezoneOffset() / 60;
         console.log("Timezone offset from UTC in hours:", timezoneOffsetHours);
-        let startDateString, endDateString, startTime, endTime, greyOut = [];
+        let startDate, endDate, startTime, endTime, greyOut = [];
         const selected = {}; let rows = [], allWeeks = [], currentWeekIndex = 0;
 
 
@@ -33,10 +33,10 @@
         function convertTime(t) { let [time, ampm]=t.split(" "); if(!ampm){ampm=time.slice(-2);time=time.slice(0,-2).trim();} let [h,m]=time.includes(":")?time.split(":"):[time,"0"];h=parseInt(h);m=parseInt(m);if(ampm.toUpperCase()==="PM"&&h!==12)h+=12;if(ampm.toUpperCase()==="AM"&&h===12)h=0;return`${h}:${m<10?"0"+m:m}`;}
 
         function setupScheduler(){
-            let weekStart = new Date(startDateString);
-            while (weekStart.getUTCDay() !== 0) weekStart.setUTCDate(weekStart.getUTCDate() - 1);
-            let weekEnd = new Date(endDateString);
-            while (weekEnd.getUTCDay() !== 6) weekEnd.setUTCDate(weekEnd.getUTCDate() + 1);
+            let weekStart = new Date(startDate);
+            while (weekStart.getDay() !== 0) weekStart.setDate(weekStart.getDate() - 1);
+            let weekEnd = new Date(endDate);
+            while (weekEnd.getDay() !== 6) weekEnd.setDate(weekEnd.getDate() + 1);
             rows=[]; let startM=timeToMinutes(startTime), endM=timeToMinutes(endTime);
             for(let t=startM;t<endM;t+=30){rows.push(minutesToTime(t)+" - "+minutesToTime(t+30));}
             allWeeks=[]; let current=new Date(weekStart);
@@ -45,18 +45,18 @@
                 const week=[];
                 for(let i=0;i<7;i++){
                     const day=new Date(current);
-                    day.setUTCDate(current.getUTCDate()+i);
+                    day.setDate(current.getDate()+i);
                     if(day>weekEnd)break;
                     week.push(day);
                 }
                 allWeeks.push(week);
-                current.setUTCDate(current.getUTCDate()+7);
+                current.setDate(current.getDate()+7);
             }
 
             // Automatically grey out days before startDate in first week
             const firstWeek = allWeeks[0];
             for (let i = 0; i < firstWeek.length; i++) {
-                if (firstWeek[i].toISOString().split('T')[0] < startDateString.split('T')[0]) {
+                if (firstWeek[i].toISOString().split('T')[0] < startDate.toISOString().split('T')[0]) {
                     if (!greyOut.includes(firstWeek[i].toISOString().split('T')[0])) {
                         greyOut.push(firstWeek[i].toISOString().split('T')[0]);
                     }
@@ -65,7 +65,7 @@
             // Automatically grey out days after endDate in last week
             const lastWeek = allWeeks[allWeeks.length - 1];
             for (let i = 0; i < lastWeek.length; i++) {
-                if (lastWeek[i].toISOString().split('T')[0] > endDateString.split('T')[0]) {
+                if (lastWeek[i].toISOString().split('T')[0] > endDate.toISOString().split('T')[0]) {
                     if (!greyOut.includes(lastWeek[i].toISOString().split('T')[0])) {
                         greyOut.push(lastWeek[i].toISOString().split('T')[0]);
                     }
@@ -80,8 +80,7 @@
             const headerRow=table.insertRow(); headerRow.insertCell();
             weekDays.forEach(day=>{
                 const th=headerRow.insertCell();
-                th.textContent=new Date(Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate()))
-                    .toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+                th.textContent = day.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
             });
             rows.forEach(row=>{
                 const tr=table.insertRow(), rowLabel=tr.insertCell(); rowLabel.textContent=row;
@@ -130,18 +129,20 @@
         JFCustomWidget.subscribe("ready", function(formId, value){
             const messageDiv = document.getElementById("message");
             
-            startDateString = JFCustomWidget.getWidgetSetting("startDate") ? JFCustomWidget.getWidgetSetting("startDate") : null;
-            console.log("startDateString", startDateString)
-            endDateString = JFCustomWidget.getWidgetSetting("endDate") ? JFCustomWidget.getWidgetSetting("endDate") : null;
-            const startDateParts = startDateString ? { year: startDateString.getUTCFullYear(), month: startDateString.getUTCMonth()+1, day: startDateString.getUTCDate() } : null;
-            const endDateParts = endDateString ? { year: endDateString.getUTCFullYear(), month: endDateString.getUTCMonth()+1, day: endDateString.getUTCDate() } : null;
-            console.log("startDateParts", startDateParts, "endDateParts", endDateParts);
+            const offsetMinutes = new Date().getTimezoneOffset();
+            startDate = JFCustomWidget.getWidgetSetting("startDate") 
+                ? new Date(new Date(JFCustomWidget.getWidgetSetting("startDate")+"T00:00:00Z").getTime() - offsetMinutes * 60 * 1000)
+                : null;
+            endDate = JFCustomWidget.getWidgetSetting("endDate") 
+                ? new Date(new Date(JFCustomWidget.getWidgetSetting("endDate")+"T00:00:00Z").getTime() - offsetMinutes * 60 * 1000)
+                : null;
             startTime = JFCustomWidget.getWidgetSetting("startTime") || "2:30 PM";
             endTime = JFCustomWidget.getWidgetSetting("endTime") || "7:00 PM";
             const grey = JFCustomWidget.getWidgetSetting("greyOut");
             if (grey) greyOut = grey.split(",").map(s => s.trim());
+            console.log("startDate", startDate)
 
-            if (!startDateString || !endDateString) {
+            if (!startDate || !endDate) {
                 messageDiv.textContent = "This scheduler widget needs to be configured with a start and end date.";
                 return;
             } else {
