@@ -31,12 +31,44 @@
         function convertTime(t) { let [time, ampm]=t.split(" "); if(!ampm){ampm=time.slice(-2);time=time.slice(0,-2).trim();} let [h,m]=time.includes(":")?time.split(":"):[time,"0"];h=parseInt(h);m=parseInt(m);if(ampm.toUpperCase()==="PM"&&h!==12)h+=12;if(ampm.toUpperCase()==="AM"&&h===12)h=0;return`${h}:${m<10?"0"+m:m}`;}
 
         function setupScheduler(){
-            while(startDate.getUTCDay()!==0) startDate.setDate(startDate.getDate()-1);
-            while(endDate.getUTCDay()!==6) endDate.setDate(endDate.getDate()+1);
+            let weekStart = new Date(startDate);
+            while (weekStart.getUTCDay() !== 0) weekStart.setUTCDate(weekStart.getUTCDate() - 1);
+            let weekEnd = new Date(endDate);
+            while (weekEnd.getUTCDay() !== 6) weekEnd.setUTCDate(weekEnd.getUTCDate() + 1);
             rows=[]; let startM=timeToMinutes(startTime), endM=timeToMinutes(endTime);
             for(let t=startM;t<endM;t+=30){rows.push(minutesToTime(t)+" - "+minutesToTime(t+30));}
-            allWeeks=[]; let current=new Date(startDate);
-            while(current<=endDate){const week=[];for(let i=0;i<7;i++){const day=new Date(current);day.setDate(current.getDate()+i);if(day>endDate)break;week.push(day);}allWeeks.push(week);current.setDate(current.getDate()+7);}
+            allWeeks=[]; let current=new Date(weekStart);
+            while(current<=weekEnd){
+                const week=[];
+                for(let i=0;i<7;i++){
+                    const day=new Date(current);
+                    day.setUTCDate(current.getUTCDate()+i);
+                    if(day>weekEnd)break;
+                    week.push(day);
+                }
+                allWeeks.push(week);
+                current.setUTCDate(current.getUTCDate()+7);
+            }
+
+            // Automatically grey out days before startDate in first week
+            const firstWeek = allWeeks[0];
+            for (let i = 0; i < firstWeek.length; i++) {
+                if (firstWeek[i].toISOString().split('T')[0] < startDate.toISOString().split('T')[0]) {
+                    if (!greyOut.includes(firstWeek[i].toISOString().split('T')[0])) {
+                        greyOut.push(firstWeek[i].toISOString().split('T')[0]);
+                    }
+                }
+            }
+            // Automatically grey out days after endDate in last week
+            const lastWeek = allWeeks[allWeeks.length - 1];
+            for (let i = 0; i < lastWeek.length; i++) {
+                if (lastWeek[i].toISOString().split('T')[0] > endDate.toISOString().split('T')[0]) {
+                    if (!greyOut.includes(lastWeek[i].toISOString().split('T')[0])) {
+                        greyOut.push(lastWeek[i].toISOString().split('T')[0]);
+                    }
+                }
+            }
+
             currentWeekIndex=0; updateGridWeek();
         }
 
