@@ -95,8 +95,8 @@
             endTime=JFCustomWidget.getWidgetSetting("endTime");
             const grey=JFCustomWidget.getWidgetSetting("greyOut");
             if(grey)greyOut=grey.split(",").map(s=>s.trim());
-            setupScheduler();
             console.log(startDate, endDate, startTime, endTime)
+            setupScheduler();
 
             JFCustomWidget.subscribe("submit", function(){
                 JFCustomWidget.sendSubmit({valid:true,value:JSON.stringify(selected)});
