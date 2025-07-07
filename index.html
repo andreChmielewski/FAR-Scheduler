@@ -90,12 +90,13 @@
 
         JFCustomWidget.subscribe("ready", function(formId, value){
             startDate=new Date(JFCustomWidget.getWidgetSetting("startDate"));
+            console.log("start date from settings:", startDate)
             endDate=new Date(JFCustomWidget.getWidgetSetting("endDate"));
             startTime=JFCustomWidget.getWidgetSetting("startTime");
             endTime=JFCustomWidget.getWidgetSetting("endTime");
             const grey=JFCustomWidget.getWidgetSetting("greyOut");
             if(grey)greyOut=grey.split(",").map(s=>s.trim());
-            console.log(startDate, endDate, startTime, endTime)
+            // console.log(startDate, endDate, startTime, endTime)
             setupScheduler();
 
             JFCustomWidget.subscribe("submit", function(){
