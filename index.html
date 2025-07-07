@@ -122,7 +122,7 @@
 
         JFCustomWidget.subscribe("ready", function(formId, value){
             startDate=new Date(JFCustomWidget.getWidgetSetting("startDate"));
-            console.log("start date from settings:", startDate)
+            console.log("UTC start day from settings:", startDate.getUTCDay())
             endDate=new Date(JFCustomWidget.getWidgetSetting("endDate"));
             startTime=JFCustomWidget.getWidgetSetting("startTime");
             endTime=JFCustomWidget.getWidgetSetting("endTime");
