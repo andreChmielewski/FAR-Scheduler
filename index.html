@@ -49,8 +49,7 @@
             cb(val);
         },
         init: (o) => o.ready && o.ready(),
-        ready: () => console.log("Widget ready"),
-        getSettings: (cb) => { cb({}); } // placeholder for settings callback
+        ready: () => console.log("Widget ready")
     };
 </script>
     <script>
@@ -130,24 +129,51 @@
             for (const rule of greyOut) {
                 const parts = rule.split(" ");
                 if (parts.length === 1) {
-                    // e.g. "Su"
-                    if (dayName === parts[0]) return true;
+                    if (parts[0].includes("/")) {
+                        // e.g. "08/25/25"
+                        if (dayString === toMDY(parts[0])) return true;
+                    } else {
+                        // e.g. "M"
+                        if (dayName === parts[0]) return true;
+                    }
                 } else if (parts.length === 2) {
-                    // e.g. "Th 08/25/25"
-                    if (dayName === parts[0] && dayString === toMDY(parts[1])) return true;
-                } else if (parts.length >= 3) {
-                    // e.g. "Tu 08/26/25 2:30 PM" or "Tu 08/26/25 2:30 PM - 4 PM"
-                    if (dayName === parts[0] && dayString === toMDY(parts[1])) {
-                        const timePart = rule.slice(rule.indexOf(parts[2])).trim();
-                        if (timePart.includes("-")) {
-                            const [start, end] = timePart.split("-").map(s => s.trim());
-                            const rowMinutes = timeToMinutes(convertTime(rowTime));
-                            const startMinutes = timeToMinutes(convertTime(start));
-                            const endMinutes = timeToMinutes(convertTime(end));
-                            if (rowMinutes >= startMinutes && rowMinutes < endMinutes) return true;
-                        } else {
-                            const matchTime = timeToMinutes(convertTime(parts[2]));
+                    if (parts[1].includes("/")) {
+                        // e.g. "M 08/25/25"
+                        if (dayName === parts[0] && dayString === toMDY(parts[1])) return true;
+                    } else {
+                        // e.g. "M 2:30 PM"
+                        if (dayName === parts[0]) {
+                            const matchTime = timeToMinutes(convertTime(parts[1]));
                             if (timeToMinutes(convertTime(rowTime)) === matchTime) return true;
+                        }
+                    }
+                } else if (parts.length >= 3) {
+                    if (parts[1].includes("/")) {
+                        // e.g. "M 08/25/25 2:30 PM" or with range
+                        if (dayName === parts[0] && dayString === toMDY(parts[1])) {
+                            const timePart = rule.slice(rule.indexOf(parts[2])).trim();
+                            if (timePart.includes("-")) {
+                                const [start, end] = timePart.split("-").map(s => s.trim());
+                                const rowMinutes = timeToMinutes(convertTime(rowTime));
+                                const startMinutes = timeToMinutes(convertTime(start));
+                                const endMinutes = timeToMinutes(convertTime(end));
+                                if (rowMinutes >= startMinutes && rowMinutes < endMinutes) return true;
+                            } else {
+                                const matchTime = timeToMinutes(convertTime(parts[2]));
+                                if (timeToMinutes(convertTime(rowTime)) === matchTime) return true;
+                            }
+                        }
+                    } else {
+                        // e.g. "M 2:30 PM - 3:30 PM"
+                        if (dayName === parts[0]) {
+                            const timePart = rule.slice(rule.indexOf(parts[1])).trim();
+                            if (timePart.includes("-")) {
+                                const [start, end] = timePart.split("-").map(s => s.trim());
+                                const rowMinutes = timeToMinutes(convertTime(rowTime));
+                                const startMinutes = timeToMinutes(convertTime(start));
+                                const endMinutes = timeToMinutes(convertTime(end));
+                                if (rowMinutes >= startMinutes && rowMinutes < endMinutes) return true;
+                            }
                         }
                     }
                 }
