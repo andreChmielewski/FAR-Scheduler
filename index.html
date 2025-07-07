@@ -20,7 +20,8 @@
             text-align: center; 
             border: 1px solid #ccc; 
             cursor: pointer; 
-            white-space: nowrap;
+            white-space: normal;
+            word-wrap: break-word;
             padding: 3px;
         }
         td.selected { background-color: #4CAF50; color: white; }
@@ -38,28 +39,33 @@
 
     <!-- <script src="https://cdn.jotfor.ms/widgets/loader.js"></script> -->
 <script>
-    const JotFormCustomWidget = {
-        setValue: (val) => {
-            localStorage.setItem("farSchedulerData", val);
-            console.log("Saved:", val);
-        },
-        getValue: (cb) => {
-            const val = localStorage.getItem("farSchedulerData");
-            console.log("Loaded:", val);
-            cb(val);
-        },
-        getSettings: (cb) => {
-            cb({
-                startDate: "2025-10-05",
-                endDate: "2025-10-26",
-                startTime: "14:30",
-                endTime: "18:00",
-                greyOut: "M 2:30 PM, Tu 08/25/25"
-            });
-        },
-        init: (o) => o.ready && o.ready(),
-        ready: () => console.log("Widget ready")
-    };
+    if (typeof JotFormCustomWidget === "undefined") {
+        console.log("Running in local mode with mock data.");
+        window.JotFormCustomWidget = {
+            setValue: (val) => {
+                localStorage.setItem("farSchedulerData", val);
+                console.log("Saved:", val);
+            },
+            getValue: (cb) => {
+                const val = localStorage.getItem("farSchedulerData");
+                console.log("Loaded:", val);
+                cb(val);
+            },
+            getSettings: (cb) => {
+                cb({
+                    startDate: "2025-10-05",
+                    endDate: "2025-10-26",
+                    startTime: "14:30",
+                    endTime: "18:00",
+                    greyOut: "M 2:30 PM, Tu 08/25/25"
+                });
+            },
+            init: (o) => o.ready && o.ready(),
+            ready: () => console.log("Widget ready")
+        };
+    } else {
+        console.log("Running in JotForm live mode.");
+    }
 </script>
     <script>
         const dayInitials = {
