@@ -35,13 +35,14 @@
             const grey=JFCustomWidget.getWidgetSetting("greyOut");
             if(grey)greyOut=grey.split(",").map(s=>s.trim());
             setupScheduler();
-
+            
+            console.log(startDate, endDate, startTime, endTime, greyOut)
+            
             JFCustomWidget.subscribe("submit", function(){
                 JFCustomWidget.sendSubmit({valid:true,value:JSON.stringify(selected)});
             });
         });
 
-        console.log(startDate, endDate, startTime, endTime, greyOut)
 
         function timeToMinutes(t) { const [h,m]=t.split(":").map(Number); return h*60+m; }
         function minutesToTime(m) { let h=Math.floor(m/60), mm=m%60, ampm=h>=12?"PM":"AM"; h=h%12; if(h===0)h=12; return h+":"+(mm<10?"0"+mm:mm)+" "+ampm; }
