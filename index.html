@@ -76,7 +76,11 @@
         function buildGrid(weekDays){
             const table=document.getElementById("grid"); table.innerHTML="";
             const headerRow=table.insertRow(); headerRow.insertCell();
-            weekDays.forEach(day=>{const th=headerRow.insertCell();th.textContent=day.getUTCDate().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});});
+            weekDays.forEach(day=>{
+                const th=headerRow.insertCell();
+                th.textContent=new Date(Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate()))
+                    .toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+            });
             rows.forEach(row=>{
                 const tr=table.insertRow(), rowLabel=tr.insertCell(); rowLabel.textContent=row;
                 const startPart=row.split(" - ")[0], rowStart=convertTime(startPart);
