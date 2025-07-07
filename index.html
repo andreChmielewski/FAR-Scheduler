@@ -22,6 +22,8 @@
     <script>
         
         const dayInitials = { "Sun": "Su", "Mon": "M", "Tue": "Tu", "Wed": "W", "Thu": "Th", "Fri": "F", "Sat": "Sa" };
+        const timezoneOffsetHours = -new Date().getTimezoneOffset() / 60;
+        console.log("Timezone offset from UTC in hours:", timezoneOffsetHours);
         let startDateString, endDateString, startTime, endTime, greyOut = [];
         const selected = {}; let rows = [], allWeeks = [], currentWeekIndex = 0;
 
@@ -127,13 +129,17 @@
 
         JFCustomWidget.subscribe("ready", function(formId, value){
             const messageDiv = document.getElementById("message");
-            startDateString = JFCustomWidget.getWidgetSetting("startDate") ? new Date(JFCustomWidget.getWidgetSetting("startDate")+"T00:00:00Z").toISOString().split('T')[0] : null;
-            endDateString = JFCustomWidget.getWidgetSetting("endDate") ? new Date(JFCustomWidget.getWidgetSetting("endDate")+"T00:00:00Z").toISOString().split('T')[0] : null;
+            
+            startDateString = JFCustomWidget.getWidgetSetting("startDate") ? JFCustomWidget.getWidgetSetting("startDate") : null;
+            console.log("startDateString", startDateString)
+            endDateString = JFCustomWidget.getWidgetSetting("endDate") ? JFCustomWidget.getWidgetSetting("endDate") : null;
+            const startDateParts = startDateString ? { year: startDateString.getUTCFullYear(), month: startDateString.getUTCMonth()+1, day: startDateString.getUTCDate() } : null;
+            const endDateParts = endDateString ? { year: endDateString.getUTCFullYear(), month: endDateString.getUTCMonth()+1, day: endDateString.getUTCDate() } : null;
+            console.log("startDateParts", startDateParts, "endDateParts", endDateParts);
             startTime = JFCustomWidget.getWidgetSetting("startTime") || "2:30 PM";
             endTime = JFCustomWidget.getWidgetSetting("endTime") || "7:00 PM";
             const grey = JFCustomWidget.getWidgetSetting("greyOut");
             if (grey) greyOut = grey.split(",").map(s => s.trim());
-            console.log("startDateString", startDateString)
 
             if (!startDateString || !endDateString) {
                 messageDiv.textContent = "This scheduler widget needs to be configured with a start and end date.";
