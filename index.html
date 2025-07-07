@@ -22,8 +22,6 @@
     <script>
         
         const dayInitials = { "Sun": "Su", "Mon": "M", "Tue": "Tu", "Wed": "W", "Thu": "Th", "Fri": "F", "Sat": "Sa" };
-        const timezoneOffsetHours = -new Date().getTimezoneOffset() / 60;
-        console.log("Timezone offset from UTC in hours:", timezoneOffsetHours);
         let startDate, endDate, startTime, endTime, greyOut = [];
         const selected = {}; let rows = [], allWeeks = [], currentWeekIndex = 0;
 
@@ -131,11 +129,11 @@
             
             const offsetMinutes = new Date().getTimezoneOffset();
             startDate = JFCustomWidget.getWidgetSetting("startDate") 
-                ? new Date(new Date(JFCustomWidget.getWidgetSetting("startDate")+"T00:00:00Z").getTime() - offsetMinutes * 60 * 1000)
-                : null;
+                ? new Date(new Date(JFCustomWidget.getWidgetSetting("startDate")+"T00:00:00Z").getTime() + offsetMinutes * 60 * 1000)
+                : new Date();
             endDate = JFCustomWidget.getWidgetSetting("endDate") 
-                ? new Date(new Date(JFCustomWidget.getWidgetSetting("endDate")+"T00:00:00Z").getTime() - offsetMinutes * 60 * 1000)
-                : null;
+                ? new Date(new Date(JFCustomWidget.getWidgetSetting("endDate")+"T00:00:00Z").getTime() + offsetMinutes * 60 * 1000)
+                : new Date(new Date().setDate(new Date().getDate() + 14));
             startTime = JFCustomWidget.getWidgetSetting("startTime") || "2:30 PM";
             endTime = JFCustomWidget.getWidgetSetting("endTime") || "7:00 PM";
             const grey = JFCustomWidget.getWidgetSetting("greyOut");
