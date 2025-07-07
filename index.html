@@ -31,8 +31,8 @@
         function convertTime(t) { let [time, ampm]=t.split(" "); if(!ampm){ampm=time.slice(-2);time=time.slice(0,-2).trim();} let [h,m]=time.includes(":")?time.split(":"):[time,"0"];h=parseInt(h);m=parseInt(m);if(ampm.toUpperCase()==="PM"&&h!==12)h+=12;if(ampm.toUpperCase()==="AM"&&h===12)h=0;return`${h}:${m<10?"0"+m:m}`;}
 
         function setupScheduler(){
-            while(startDate.getDay()!==0) startDate.setDate(startDate.getDate()-1);
-            while(endDate.getDay()!==6) endDate.setDate(endDate.getDate()+1);
+            while(startDate.getUTCDay()!==0) startDate.setDate(startDate.getDate()-1);
+            while(endDate.getUTCDay()!==6) endDate.setDate(endDate.getDate()+1);
             rows=[]; let startM=timeToMinutes(startTime), endM=timeToMinutes(endTime);
             for(let t=startM;t<endM;t+=30){rows.push(minutesToTime(t)+" - "+minutesToTime(t+30));}
             allWeeks=[]; let current=new Date(startDate);
@@ -89,14 +89,13 @@
         function toMDY(s){const[m,d,y]=s.split("/");return`20${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;}
 
         JFCustomWidget.subscribe("ready", function(formId, value){
-            startDate=new Date(JFCustomWidget.getWidgetSetting("startDate")+"T00:00:00Z");
+            startDate=new Date(JFCustomWidget.getWidgetSetting("startDate"));
             console.log("start date from settings:", startDate)
-            endDate=new Date(JFCustomWidget.getWidgetSetting("endDate")+"T00:00:00Z");
+            endDate=new Date(JFCustomWidget.getWidgetSetting("endDate"));
             startTime=JFCustomWidget.getWidgetSetting("startTime");
             endTime=JFCustomWidget.getWidgetSetting("endTime");
             const grey=JFCustomWidget.getWidgetSetting("greyOut");
             if(grey)greyOut=grey.split(",").map(s=>s.trim());
-            // console.log(startDate, endDate, startTime, endTime)
             setupScheduler();
 
             JFCustomWidget.subscribe("submit", function(){
