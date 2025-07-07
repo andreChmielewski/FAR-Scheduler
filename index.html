@@ -48,6 +48,15 @@
             console.log("Loaded:", val);
             cb(val);
         },
+        getSettings: (cb) => {
+            cb({
+                startDate: "2025-10-05",
+                endDate: "2025-10-26",
+                startTime: "14:30",
+                endTime: "18:00",
+                greyOut: "M 2:30 PM, Tu 08/25/25"
+            });
+        },
         init: (o) => o.ready && o.ready(),
         ready: () => console.log("Widget ready")
     };
