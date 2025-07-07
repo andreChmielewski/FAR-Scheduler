@@ -138,7 +138,7 @@
             startTime = JFCustomWidget.getWidgetSetting("startTime") || "2:30 PM";
             endTime = JFCustomWidget.getWidgetSetting("endTime") || "7:00 PM";
             const grey = JFCustomWidget.getWidgetSetting("greyOut");
-            if (grey) greyOut = grey.split(",").map(s => s.trim());
+            if (grey) greyOut = grey.split("\n").map(s => s.trim());
 
             if (!startDate || !endDate) {
                 messageDiv.textContent = "This scheduler widget needs to be configured with a start and end date.";
