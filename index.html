@@ -276,10 +276,13 @@
 
         JotFormCustomWidget.init({
             ready: function(){
+                console.log("Widget INIT called");
                 JotFormCustomWidget.getSettings(function(settings){
+                    console.log("Settings received from JotForm:", settings);
                     const messageDiv = document.getElementById("message");
                     if (!settings.startDate || !settings.endDate || !settings.startTime || !settings.endTime) {
                         messageDiv.textContent = "This scheduler widget needs to be configured with start/end dates and times.";
+                        console.log("Missing required settings. Exiting.");
                         return;
                     }
                     messageDiv.textContent = "";
@@ -290,7 +293,13 @@
                     if (settings.greyOut) {
                         greyOut = settings.greyOut.split(",").map(s => s.trim());
                     }
+
+                    console.log("Scheduler config after parsing:", {
+                        startDate, endDate, startTime, endTime, greyOut
+                    });
+
                     JotFormCustomWidget.getFieldValue(function(value){
+                        console.log("Existing submission data:", value);
                         if (value) {
                             try {
                                 Object.assign(selected, JSON.parse(value));
