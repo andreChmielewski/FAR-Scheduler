@@ -127,12 +127,13 @@
 
         JFCustomWidget.subscribe("ready", function(formId, value){
             const messageDiv = document.getElementById("message");
-            startDateString = JFCustomWidget.getWidgetSetting("startDate") ? new Date(JFCustomWidget.getWidgetSetting("startDate")).toUTCString() : null;
-            endDateString = JFCustomWidget.getWidgetSetting("endDate") ? new Date(JFCustomWidget.getWidgetSetting("endDate")).toUTCString() : null;
+            startDateString = JFCustomWidget.getWidgetSetting("startDate") ? new Date(JFCustomWidget.getWidgetSetting("startDate")+"T00:00:00Z").toISOString().split('T')[0] : null;
+            endDateString = JFCustomWidget.getWidgetSetting("endDate") ? new Date(JFCustomWidget.getWidgetSetting("endDate")+"T00:00:00Z").toISOString().split('T')[0] : null;
             startTime = JFCustomWidget.getWidgetSetting("startTime") || "2:30 PM";
             endTime = JFCustomWidget.getWidgetSetting("endTime") || "7:00 PM";
             const grey = JFCustomWidget.getWidgetSetting("greyOut");
             if (grey) greyOut = grey.split(",").map(s => s.trim());
+            console.log("startDateString", startDateString)
 
             if (!startDateString || !endDateString) {
                 messageDiv.textContent = "This scheduler widget needs to be configured with a start and end date.";
