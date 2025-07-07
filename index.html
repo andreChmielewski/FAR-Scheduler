@@ -39,7 +39,6 @@
             for(let t=startM;t<endM;t+=30){rows.push(minutesToTime(t)+" - "+minutesToTime(t+30));}
             allWeeks=[]; let current=new Date(weekStart);
             while(current<=weekEnd){
-                console.log("current date: ",current)
                 const week=[];
                 for(let i=0;i<7;i++){
                     const day=new Date(current);
@@ -138,7 +137,6 @@
             endTime = JFCustomWidget.getWidgetSetting("endTime") || "7:00 PM";
             const grey = JFCustomWidget.getWidgetSetting("greyOut");
             if (grey) greyOut = grey.split(",").map(s => s.trim());
-            console.log("startDate", startDate)
 
             if (!startDate || !endDate) {
                 messageDiv.textContent = "This scheduler widget needs to be configured with a start and end date.";
