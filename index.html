@@ -2,34 +2,16 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Custom MultiSelect Grid</title>
+    <title>FAR Scheduler</title>
+    <script src="//js.jotform.com/JotFormCustomWidget.min.js"></script>
     <style>
         body { font-family: Arial, sans-serif; padding: 10px; }
-        table { 
-            border-collapse: collapse; 
-            table-layout: fixed;
-            width: 100%;
-        }
-        th:first-child, td:first-child {
-            width: 100px;
-            min-width: 100px;
-        }
-        th, td { 
-            min-width: 60px;
-            height: 50px; 
-            text-align: center; 
-            border: 1px solid #ccc; 
-            cursor: pointer; 
-            white-space: normal;
-            word-wrap: break-word;
-            padding: 3px;
-        }
+        table { border-collapse: collapse; width: 100%; table-layout: fixed; }
+        th:first-child, td:first-child { width: 100px; }
+        th, td { min-width: 60px; height: 50px; text-align: center; border: 1px solid #ccc; white-space: normal; word-wrap: break-word; padding: 3px; cursor: pointer; }
         td.selected { background-color: #4CAF50; color: white; }
         td.deselected { background-color: #f44336; color: white; }
-        td.greyed {
-            background-color: #ddd !important;
-            cursor: not-allowed;
-        }
+        td.greyed { background-color: #ddd !important; cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -37,281 +19,85 @@
     <div id="weekNav"></div>
     <table id="grid"></table>
 
-    <script src="//js.jotform.com/JotFormCustomWidget.min.js"></script>
     <script>
-        const dayInitials = {
-            "Sun": "Su",
-            "Mon": "M",
-            "Tue": "Tu",
-            "Wed": "W",
-            "Thu": "Th",
-            "Fri": "F",
-            "Sat": "Sa"
-        };
+        const dayInitials = { "Sun": "Su", "Mon": "M", "Tue": "Tu", "Wed": "W", "Thu": "Th", "Fri": "F", "Sat": "Sa" };
+        let startDate, endDate, startTime, endTime, greyOut = [];
+        const selected = {}; let rows = [], allWeeks = [], currentWeekIndex = 0;
 
-        let startDate = new Date("2025-10-05"); 
-        let endDate = new Date("2025-10-26");
-        let startTime = "14:30"; 
-        let endTime = "18:00";
-        let greyOut = [];
+        function timeToMinutes(t) { const [h,m]=t.split(":").map(Number); return h*60+m; }
+        function minutesToTime(m) { let h=Math.floor(m/60), mm=m%60, ampm=h>=12?"PM":"AM"; h=h%12; if(h===0)h=12; return h+":"+(mm<10?"0"+mm:mm)+" "+ampm; }
+        function convertTime(t) { let [time, ampm]=t.split(" "); if(!ampm){ampm=time.slice(-2);time=time.slice(0,-2).trim();} let [h,m]=time.includes(":")?time.split(":"):[time,"0"];h=parseInt(h);m=parseInt(m);if(ampm.toUpperCase()==="PM"&&h!==12)h+=12;if(ampm.toUpperCase()==="AM"&&h===12)h=0;return`${h}:${m<10?"0"+m:m}`;}
 
-        const selected = {};  // { "2025-10-05": { "14:30": true, ... }, ... }
-        let rows = [];
-        let allWeeks = [];
-        let currentWeekIndex = 0;
-
-        function setupScheduler() {
-            // Align startDate to nearest previous Sunday
-            while (startDate.getDay() !== 0) {
-                startDate.setDate(startDate.getDate() - 1);
-            }
-            // Align endDate to nearest next Saturday
-            while (endDate.getDay() !== 6) {
-                endDate.setDate(endDate.getDate() + 1);
-            }
-
-            // Generate rows from startTime to endTime in 30 min intervals
-            rows = [];
-            function timeToMinutes(t) {
-                const [h,m] = t.split(":").map(Number);
-                return h*60 + m;
-            }
-            function minutesToTime(m) {
-                let h = Math.floor(m/60);
-                let mm = m % 60;
-                const ampm = h >= 12 ? "PM" : "AM";
-                h = h % 12;
-                if (h === 0) h = 12;
-                return h + ":" + (mm < 10 ? "0" + mm : mm) + " " + ampm;
-            }
-            let startM = timeToMinutes(startTime);
-            let endM = timeToMinutes(endTime);
-            for(let t = startM; t < endM; t += 30) {
-                const startStr = minutesToTime(t);
-                const endStr = minutesToTime(t + 30);
-                rows.push(startStr + " - " + endStr);
-            }
-
-            // Compute all weeks in the range
-            allWeeks = [];
-            let current = new Date(startDate);
-            while (current <= endDate) {
-                const week = [];
-                for (let i = 0; i < 7; i++) {
-                    const day = new Date(current);
-                    day.setDate(current.getDate() + i);
-                    if (day > endDate) break;
-                    week.push(day);
-                }
-                allWeeks.push(week);
-                current.setDate(current.getDate() + 7);
-            }
-            currentWeekIndex = 0;
-
-            updateGridWeek();
+        function setupScheduler(){
+            while(startDate.getDay()!==0) startDate.setDate(startDate.getDate()-1);
+            while(endDate.getDay()!==6) endDate.setDate(endDate.getDate()+1);
+            rows=[]; let startM=timeToMinutes(startTime), endM=timeToMinutes(endTime);
+            for(let t=startM;t<endM;t+=30){rows.push(minutesToTime(t)+" - "+minutesToTime(t+30));}
+            allWeeks=[]; let current=new Date(startDate);
+            while(current<=endDate){const week=[];for(let i=0;i<7;i++){const day=new Date(current);day.setDate(current.getDate()+i);if(day>endDate)break;week.push(day);}allWeeks.push(week);current.setDate(current.getDate()+7);}
+            currentWeekIndex=0; updateGridWeek();
         }
 
-        function shouldGreyOut(day, dayName, rowTime, dayString) {
-            for (const rule of greyOut) {
-                const parts = rule.split(" ");
-                if (parts.length === 1) {
-                    if (parts[0].includes("/")) {
-                        // e.g. "08/25/25"
-                        if (dayString === toMDY(parts[0])) return true;
-                    } else {
-                        // e.g. "M"
-                        if (dayName === parts[0]) return true;
-                    }
-                } else if (parts.length === 2) {
-                    if (parts[1].includes("/")) {
-                        // e.g. "M 08/25/25"
-                        if (dayName === parts[0] && dayString === toMDY(parts[1])) return true;
-                    } else {
-                        // e.g. "M 2:30 PM"
-                        if (dayName === parts[0]) {
-                            const matchTime = timeToMinutes(convertTime(parts[1]));
-                            if (timeToMinutes(convertTime(rowTime)) === matchTime) return true;
-                        }
-                    }
-                } else if (parts.length >= 3) {
-                    if (parts[1].includes("/")) {
-                        // e.g. "M 08/25/25 2:30 PM" or with range
-                        if (dayName === parts[0] && dayString === toMDY(parts[1])) {
-                            const timePart = rule.slice(rule.indexOf(parts[2])).trim();
-                            if (timePart.includes("-")) {
-                                const [start, end] = timePart.split("-").map(s => s.trim());
-                                const rowMinutes = timeToMinutes(convertTime(rowTime));
-                                const startMinutes = timeToMinutes(convertTime(start));
-                                const endMinutes = timeToMinutes(convertTime(end));
-                                if (rowMinutes >= startMinutes && rowMinutes < endMinutes) return true;
-                            } else {
-                                const matchTime = timeToMinutes(convertTime(parts[2]));
-                                if (timeToMinutes(convertTime(rowTime)) === matchTime) return true;
-                            }
-                        }
-                    } else {
-                        // e.g. "M 2:30 PM - 3:30 PM"
-                        if (dayName === parts[0]) {
-                            const timePart = rule.slice(rule.indexOf(parts[1])).trim();
-                            if (timePart.includes("-")) {
-                                const [start, end] = timePart.split("-").map(s => s.trim());
-                                const rowMinutes = timeToMinutes(convertTime(rowTime));
-                                const startMinutes = timeToMinutes(convertTime(start));
-                                const endMinutes = timeToMinutes(convertTime(end));
-                                if (rowMinutes >= startMinutes && rowMinutes < endMinutes) return true;
-                            }
-                        }
-                    }
+        function buildGrid(weekDays){
+            const table=document.getElementById("grid"); table.innerHTML="";
+            const headerRow=table.insertRow(); headerRow.insertCell();
+            weekDays.forEach(day=>{const th=headerRow.insertCell();th.textContent=day.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});});
+            rows.forEach(row=>{
+                const tr=table.insertRow(), rowLabel=tr.insertCell(); rowLabel.textContent=row;
+                const startPart=row.split(" - ")[0], rowStart=convertTime(startPart);
+                weekDays.forEach(day=>{
+                    const dayKey=day.toISOString().split('T')[0], td=tr.insertCell();
+                    const dayCode=day.toDateString().split(" ")[0], dayName=dayInitials[dayCode];
+                    if(shouldGreyOut(day, dayName, rowStart, dayKey)) td.classList.add("greyed");
+                    td.dataset.row=row; td.dataset.col=dayKey;
+                    td.addEventListener('click',()=>{if(!td.classList.contains("greyed"))toggleCell(td);});
+                    if(!selected[dayKey])selected[dayKey]={}; if(selected[dayKey][row]===undefined)selected[dayKey][row]=true;
+                    td.classList.add(selected[dayKey][row]?"selected":"deselected");
+                });
+            });
+        }
+
+        function updateGridWeek(){
+            buildGrid(allWeeks[currentWeekIndex]);
+            document.getElementById("weekNav").innerHTML=`<button onclick="prevWeek()">Previous</button><span>Week ${currentWeekIndex+1} of ${allWeeks.length}</span><button onclick="nextWeek()">Next</button>`;
+        }
+        window.prevWeek=()=>{if(currentWeekIndex>0){currentWeekIndex--;updateGridWeek();}};
+        window.nextWeek=()=>{if(currentWeekIndex<allWeeks.length-1){currentWeekIndex++;updateGridWeek();}};
+
+        function toggleCell(cell){
+            const row=cell.dataset.row, col=cell.dataset.col;
+            if(!selected[col])selected[col]={}; selected[col][row]=!selected[col][row];
+            cell.classList.toggle("selected",selected[col][row]); cell.classList.toggle("deselected",!selected[col][row]);
+            JFCustomWidget.sendData(JSON.stringify(selected));
+        }
+
+        function shouldGreyOut(day, dayName, rowTime, dayString){
+            for(const rule of greyOut){
+                const parts=rule.split(" ");
+                if(parts.length===1){if(parts[0].includes("/")){if(dayString===toMDY(parts[0]))return true;}else{if(dayName===parts[0])return true;}}
+                else if(parts.length===2){if(parts[1].includes("/")){if(dayName===parts[0]&&dayString===toMDY(parts[1]))return true;}else{if(dayName===parts[0]&&timeToMinutes(convertTime(rowTime))===timeToMinutes(convertTime(parts[1])))return true;}}
+                else if(parts.length>=3){
+                    if(parts[1].includes("/")){if(dayName===parts[0]&&dayString===toMDY(parts[1])){const timePart=rule.slice(rule.indexOf(parts[2])).trim();if(timePart.includes("-")){const[start,end]=timePart.split("-").map(s=>s.trim()),rowM=timeToMinutes(convertTime(rowTime)),startM=timeToMinutes(convertTime(start)),endM=timeToMinutes(convertTime(end));if(rowM>=startM&&rowM<endM)return true;}else{if(timeToMinutes(convertTime(rowTime))===timeToMinutes(convertTime(parts[2])))return true;}}}
+                    else{if(dayName===parts[0]){const timePart=rule.slice(rule.indexOf(parts[1])).trim();if(timePart.includes("-")){const[start,end]=timePart.split("-").map(s=>s.trim()),rowM=timeToMinutes(convertTime(rowTime)),startM=timeToMinutes(convertTime(start)),endM=timeToMinutes(convertTime(end));if(rowM>=startM&&rowM<endM)return true;}}}
                 }
             }
             return false;
         }
 
-        function toMDY(s) {
-            const [m,d,y] = s.split("/");
-            return `20${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
-        }
+        function toMDY(s){const[m,d,y]=s.split("/");return`20${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;}
 
-        function convertTime(t) {
-            let [time, ampm] = t.split(" ");
-            if (!ampm) { // case like "4 PM"
-                ampm = time.slice(-2);
-                time = time.slice(0, -2).trim();
-            }
-            let [h, m] = time.includes(":") ? time.split(":") : [time, "0"];
-            h = parseInt(h);
-            m = parseInt(m);
-            if (ampm.toUpperCase() === "PM" && h !== 12) h += 12;
-            if (ampm.toUpperCase() === "AM" && h === 12) h = 0;
-            return `${h}:${m < 10 ? "0" + m : m}`;
-        }
+        JFCustomWidget.subscribe("ready", function(){
+            startDate=new Date(JFCustomWidget.getWidgetSetting("startDate"));
+            endDate=new Date(JFCustomWidget.getWidgetSetting("endDate"));
+            startTime=JFCustomWidget.getWidgetSetting("startTime");
+            endTime=JFCustomWidget.getWidgetSetting("endTime");
+            const grey=JFCustomWidget.getWidgetSetting("greyOut");
+            if(grey)greyOut=grey.split(",").map(s=>s.trim());
+            setupScheduler();
 
-        function buildGrid(weekDays) {
-            const table = document.getElementById("grid");
-            table.innerHTML = "";
-
-            // Header row
-            const headerRow = table.insertRow();
-            headerRow.insertCell();
-            weekDays.forEach(day => {
-                const th = headerRow.insertCell();
-                th.textContent = day.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+            JFCustomWidget.subscribe("submit", function(){
+                JFCustomWidget.sendSubmit({valid:true,value:JSON.stringify(selected)});
             });
-
-            // Rows
-            rows.forEach(row => {
-                const tr = table.insertRow();
-                const rowLabel = tr.insertCell();
-                rowLabel.textContent = row;
-
-                // Extract start time from row label (e.g. "2:30 PM - 3:00 PM" => "14:30")
-                const startPart = row.split(" - ")[0];
-                // Convert to 24h format string like "14:30"
-                function parse12h(t) {
-                    let [time, ampm] = t.split(" ");
-                    let [h,m] = time.split(":").map(Number);
-                    if (ampm === "PM" && h !== 12) h += 12;
-                    if (ampm === "AM" && h === 12) h = 0;
-                    return (h < 10 ? "0" : "") + h + ":" + (m < 10 ? "0" : "") + m;
-                }
-                const rowStart = parse12h(startPart);
-
-                weekDays.forEach(day => {
-                    const dayKey = day.toISOString().split('T')[0];
-                    const td = tr.insertCell();
-                    td.dataset.row = row;
-                    td.dataset.col = dayKey;
-                    const dayCode = day.toDateString().split(" ")[0];
-                    const dayName = dayInitials[dayCode];
-                    if (shouldGreyOut(day, dayName, rowStart, dayKey)) {
-                        td.classList.add("greyed");
-                    }
-                    td.addEventListener('click', () => {
-                        if (!td.classList.contains("greyed")) toggleCell(td);
-                    });
-                    if (!selected[dayKey]) selected[dayKey] = {};
-                    if (selected[dayKey][row] === undefined) {
-                        selected[dayKey][row] = true; // default selected
-                    }
-                    td.classList.add(selected[dayKey][row] ? "selected" : "deselected");
-                });
-            });
-        }
-
-        function updateGridWeek() {
-            buildGrid(allWeeks[currentWeekIndex]);
-            document.getElementById("weekNav").innerHTML =
-                `<button onclick="prevWeek()">Previous</button>
-                 <span>Week ${currentWeekIndex+1} of ${allWeeks.length}</span>
-                 <button onclick="nextWeek()">Next</button>`;
-        }
-        // Make these functions global for button onclick
-        window.prevWeek = function() {
-            if (currentWeekIndex > 0) {
-                currentWeekIndex--;
-                updateGridWeek();
-            }
-        }
-        window.nextWeek = function() {
-            if (currentWeekIndex < allWeeks.length - 1) {
-                currentWeekIndex++;
-                updateGridWeek();
-            }
-        }
-
-        function toggleCell(cell) {
-            const row = cell.dataset.row;
-            const col = cell.dataset.col;
-            if (!selected[col]) selected[col] = {};
-            selected[col][row] = !selected[col][row];
-            if (selected[col][row]) {
-                cell.classList.add("selected");
-                cell.classList.remove("deselected");
-            } else {
-                cell.classList.remove("selected");
-                cell.classList.add("deselected");
-            }
-            JotFormCustomWidget.setValue(JSON.stringify(selected));
-        }
-
-        JotFormCustomWidget.init({
-            ready: function(){
-                console.log("Widget INIT called");
-                JotFormCustomWidget.getSettings(function(settings){
-                    console.log("Settings received from JotForm:", settings);
-                    const messageDiv = document.getElementById("message");
-                    if (!settings.startDate || !settings.endDate || !settings.startTime || !settings.endTime) {
-                        messageDiv.textContent = "This scheduler widget needs to be configured with start/end dates and times.";
-                        console.log("Missing required settings. Exiting.");
-                        return;
-                    }
-                    messageDiv.textContent = "";
-                    if (settings.startDate) startDate = new Date(settings.startDate);
-                    if (settings.endDate) endDate = new Date(settings.endDate);
-                    if (settings.startTime) startTime = settings.startTime;
-                    if (settings.endTime) endTime = settings.endTime;
-                    if (settings.greyOut) {
-                        greyOut = settings.greyOut.split(",").map(s => s.trim());
-                    }
-
-                    console.log("Scheduler config after parsing:", {
-                        startDate, endDate, startTime, endTime, greyOut
-                    });
-
-                    JotFormCustomWidget.getFieldValue(function(value){
-                        console.log("Existing submission data:", value);
-                        if (value) {
-                            try {
-                                Object.assign(selected, JSON.parse(value));
-                            } catch {
-                                console.log("Failed to parse previous value.");
-                            }
-                        }
-                        setupScheduler();
-                        JotFormCustomWidget.ready();
-                    });
-                });
-            }
         });
     </script>
 </body>
