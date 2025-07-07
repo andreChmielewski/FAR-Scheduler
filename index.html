@@ -319,7 +319,7 @@
                     if (settings.greyOut) {
                         greyOut = settings.greyOut.split(",").map(s => s.trim());
                     }
-                    JotFormCustomWidget.getValue(function(value){
+                    JotFormCustomWidget.getFieldValue(function(value){
                         if (value) {
                             try {
                                 Object.assign(selected, JSON.parse(value));
