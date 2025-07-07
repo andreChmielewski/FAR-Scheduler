@@ -35,7 +35,9 @@
             while (weekStart.getDay() !== 0) weekStart.setDate(weekStart.getDate() - 1);
             let weekEnd = new Date(endDate);
             while (weekEnd.getDay() !== 6) weekEnd.setDate(weekEnd.getDate() + 1);
-            rows=[]; let startM=timeToMinutes(startTime), endM=timeToMinutes(endTime);
+            rows=[]; 
+            let startM = timeToMinutes(convertTime(startTime));
+            let endM = timeToMinutes(convertTime(endTime));
             for(let t=startM;t<endM;t+=30){rows.push(minutesToTime(t)+" - "+minutesToTime(t+30));}
             allWeeks=[]; let current=new Date(weekStart);
             while(current<=weekEnd){
