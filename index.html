@@ -5,15 +5,23 @@
     <title>Custom MultiSelect Grid</title>
     <style>
         body { font-family: Arial, sans-serif; padding: 10px; }
-        table { border-collapse: collapse; }
+        table { 
+            border-collapse: collapse; 
+            table-layout: fixed;
+            width: 100%;
+        }
+        th:first-child, td:first-child {
+            width: 100px;
+            min-width: 100px;
+        }
         th, td { 
-            min-width: 80px;
+            min-width: 60px;
             height: 50px; 
             text-align: center; 
             border: 1px solid #ccc; 
             cursor: pointer; 
             white-space: nowrap;
-            padding: 5px;
+            padding: 3px;
         }
         td.selected { background-color: #4CAF50; color: white; }
         td.deselected { background-color: #f44336; color: white; }
@@ -24,6 +32,7 @@
     </style>
 </head>
 <body>
+    <div id="message" style="margin-bottom: 10px; color: red;"></div>
     <div id="weekNav"></div>
     <table id="grid"></table>
 
@@ -45,6 +54,16 @@
     };
 </script>
     <script>
+        const dayInitials = {
+            "Sun": "Su",
+            "Mon": "M",
+            "Tue": "Tu",
+            "Wed": "W",
+            "Thu": "Th",
+            "Fri": "F",
+            "Sat": "Sa"
+        };
+
         let startDate = new Date("2025-10-05"); 
         let endDate = new Date("2025-10-26");
         let startTime = "14:30"; 
@@ -107,6 +126,54 @@
             updateGridWeek();
         }
 
+        function shouldGreyOut(day, dayName, rowTime, dayString) {
+            for (const rule of greyOut) {
+                const parts = rule.split(" ");
+                if (parts.length === 1) {
+                    // e.g. "Su"
+                    if (dayName === parts[0]) return true;
+                } else if (parts.length === 2) {
+                    // e.g. "Th 08/25/25"
+                    if (dayName === parts[0] && dayString === toMDY(parts[1])) return true;
+                } else if (parts.length >= 3) {
+                    // e.g. "Tu 08/26/25 2:30 PM" or "Tu 08/26/25 2:30 PM - 4 PM"
+                    if (dayName === parts[0] && dayString === toMDY(parts[1])) {
+                        const timePart = rule.slice(rule.indexOf(parts[2])).trim();
+                        if (timePart.includes("-")) {
+                            const [start, end] = timePart.split("-").map(s => s.trim());
+                            const rowMinutes = timeToMinutes(convertTime(rowTime));
+                            const startMinutes = timeToMinutes(convertTime(start));
+                            const endMinutes = timeToMinutes(convertTime(end));
+                            if (rowMinutes >= startMinutes && rowMinutes < endMinutes) return true;
+                        } else {
+                            const matchTime = timeToMinutes(convertTime(parts[2]));
+                            if (timeToMinutes(convertTime(rowTime)) === matchTime) return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        function toMDY(s) {
+            const [m,d,y] = s.split("/");
+            return `20${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+        }
+
+        function convertTime(t) {
+            let [time, ampm] = t.split(" ");
+            if (!ampm) { // case like "4 PM"
+                ampm = time.slice(-2);
+                time = time.slice(0, -2).trim();
+            }
+            let [h, m] = time.includes(":") ? time.split(":") : [time, "0"];
+            h = parseInt(h);
+            m = parseInt(m);
+            if (ampm.toUpperCase() === "PM" && h !== 12) h += 12;
+            if (ampm.toUpperCase() === "AM" && h === 12) h = 0;
+            return `${h}:${m < 10 ? "0" + m : m}`;
+        }
+
         function buildGrid(weekDays) {
             const table = document.getElementById("grid");
             table.innerHTML = "";
@@ -142,8 +209,9 @@
                     const td = tr.insertCell();
                     td.dataset.row = row;
                     td.dataset.col = dayKey;
-                    const greyKey = dayKey + " " + rowStart;
-                    if (greyOut.includes(greyKey)) {
+                    const dayCode = day.toDateString().split(" ")[0];
+                    const dayName = dayInitials[dayCode];
+                    if (shouldGreyOut(day, dayName, rowStart, dayKey)) {
                         td.classList.add("greyed");
                     }
                     td.addEventListener('click', () => {
@@ -197,6 +265,12 @@
         JotFormCustomWidget.init({
             ready: function(){
                 JotFormCustomWidget.getSettings(function(settings){
+                    const messageDiv = document.getElementById("message");
+                    if (!settings.startDate || !settings.endDate || !settings.startTime || !settings.endTime) {
+                        messageDiv.textContent = "This scheduler widget needs to be configured with start/end dates and times.";
+                        return;
+                    }
+                    messageDiv.textContent = "";
                     if (settings.startDate) startDate = new Date(settings.startDate);
                     if (settings.endDate) endDate = new Date(settings.endDate);
                     if (settings.startTime) startTime = settings.startTime;
